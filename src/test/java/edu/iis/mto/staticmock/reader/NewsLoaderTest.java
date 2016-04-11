@@ -83,6 +83,23 @@ public class NewsLoaderTest {
         assertThat(newsContent, is(publishableNewsContent));
     }
 
+    @Test
+    public void publishableNewsShouldContainPublicContent() {
+        setIncomingNews(INCOMING_NEWS_NONE);
+
+        String newsContent = incomingNewsWithoutSub.elems().get(0).getContent();
+
+        PublishableNews publishableNews = newsLoader.loadNews();
+
+        String publishableNewsContent = null;
+
+        if (publishableNews.getPublicContent().size() > 0) {
+            publishableNewsContent = publishableNews.getPublicContent().get(0);
+        }
+
+        assertThat(newsContent, is(publishableNewsContent));
+    }
+
     private void setIncomingNews(String type) {
         switch (type) {
             case INCOMING_NEWS_SUBBED:
