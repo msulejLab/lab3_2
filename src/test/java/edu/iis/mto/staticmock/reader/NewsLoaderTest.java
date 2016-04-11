@@ -70,15 +70,11 @@ public class NewsLoaderTest {
     public void publishableNewsShouldContainSubscribedContent() {
         setIncomingNews(INCOMING_NEWS_SUBBED);
 
-        String newsContent = incomingNewsWithSub.elems().get(0).getContent();
+        String newsContent = getIncomingNewsContent(incomingNewsWithSub, 0);
 
         PublishableNews publishableNews = newsLoader.loadNews();
 
-        String publishableNewsContent = null;
-
-        if (publishableNews.getSubscribentContent().size() > 0) {
-            publishableNewsContent = publishableNews.getSubscribentContent().get(0);
-        }
+        String publishableNewsContent = getSubscribedContent(publishableNews);
 
         assertThat(newsContent, is(publishableNewsContent));
     }
@@ -87,17 +83,29 @@ public class NewsLoaderTest {
     public void publishableNewsShouldContainPublicContent() {
         setIncomingNews(INCOMING_NEWS_NONE);
 
-        String newsContent = incomingNewsWithoutSub.elems().get(0).getContent();
+        String newsContent = getIncomingNewsContent(incomingNewsWithoutSub, 0);
 
         PublishableNews publishableNews = newsLoader.loadNews();
 
-        String publishableNewsContent = null;
-
-        if (publishableNews.getPublicContent().size() > 0) {
-            publishableNewsContent = publishableNews.getPublicContent().get(0);
-        }
+        String publishableNewsContent = getPublicContent(publishableNews);
 
         assertThat(newsContent, is(publishableNewsContent));
+    }
+
+    @Test
+    public void publishableNewsShouldContainPublicAndSubscribedContent() {
+        setIncomingNews(INCOMING_NEWS_MIXED);
+
+        String newsContentSubbed = getIncomingNewsContent(incomingNewsMixed, 0);
+        String newsContentPublic = getIncomingNewsContent(incomingNewsMixed, 1);
+
+        PublishableNews publishableNews = newsLoader.loadNews();
+
+        String publishableNewsContentSubbed = getSubscribedContent(publishableNews);
+        String publishableNewsContentPublic = getPublicContent(publishableNews);
+
+        assertThat(publishableNewsContentSubbed, is(newsContentSubbed));
+        assertThat(publishableNewsContentPublic, is(newsContentPublic));
     }
 
     private void setIncomingNews(String type) {
@@ -112,5 +120,29 @@ public class NewsLoaderTest {
                 when(newsReaderMock.read()).thenReturn(incomingNewsMixed);
                 break;
         }
+    }
+
+    private String getPublicContent(PublishableNews publishableNews) {
+        if (publishableNews.getPublicContent().size() > 0) {
+            return publishableNews.getPublicContent().get(0);
+        }
+
+        return null;
+    }
+
+    private String getSubscribedContent(PublishableNews publishableNews) {
+        if (publishableNews.getSubscribentContent().size() > 0) {
+            return publishableNews.getSubscribentContent().get(0);
+        }
+
+        return null;
+    }
+
+    private String getIncomingNewsContent(IncomingNews incomingNews, int index) {
+        if (incomingNews.elems().size() > index) {
+            return incomingNews.elems().get(index).getContent();
+        }
+
+        return null;
     }
 }
