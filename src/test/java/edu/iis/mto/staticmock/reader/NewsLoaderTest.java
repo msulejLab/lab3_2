@@ -66,6 +66,23 @@ public class NewsLoaderTest {
         when(PublishableNews.create()).thenReturn(publishableNewsMock);
     }
 
+    @Test
+    public void publishableNewsShouldContainSubscribedContent() {
+        setIncomingNews(INCOMING_NEWS_SUBBED);
+
+        String newsContent = incomingNewsWithSub.elems().get(0).getContent();
+
+        PublishableNews publishableNews = newsLoader.loadNews();
+
+        String publishableNewsContent = null;
+
+        if (publishableNews.getSubscribentContent().size() > 0) {
+            publishableNewsContent = publishableNews.getSubscribentContent().get(0);
+        }
+
+        assertThat(newsContent, is(publishableNewsContent));
+    }
+
     private void setIncomingNews(String type) {
         switch (type) {
             case INCOMING_NEWS_SUBBED:
