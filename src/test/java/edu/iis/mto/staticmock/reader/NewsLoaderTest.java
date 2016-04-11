@@ -7,9 +7,15 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.powermock.api.mockito.PowerMockito.*;
 
 @RunWith(PowerMockRunner.class)
@@ -21,11 +27,15 @@ public class NewsLoaderTest {
 
     private NewsLoader newsLoader;
 
-    private PublishableNews publishableNewsMock;
-
+    private ConfigurationLoader configurationLoaderMock;
     private Configuration configurationMock;
 
+    private PublishableNews publishableNewsStub, publishableNewsMock;
+
     private IncomingNews incomingNewsWithSub, incomingNewsWithoutSub, incomingNewsMixed;
+    private IncomingNews incomingNewsMock;
+
+    private IncomingInfo incomingInfoWithSubMock, incomingInfoWithoutSubMock;
 
     private NewsReader newsReaderMock;
 
@@ -48,22 +58,41 @@ public class NewsLoaderTest {
         incomingNewsMixed.add(incomingInfoSubscription);
         incomingNewsMixed.add(incomingInfoWithoutSubscription);
 
+        incomingInfoWithSubMock = mock(IncomingInfo.class);
+        when(incomingInfoWithSubMock.requiresSubsciption()).thenReturn(true);
+        when(incomingInfoWithSubMock.getSubscriptionType()).thenReturn(SubsciptionType.A);
+        when(incomingInfoWithSubMock.getContent()).thenReturn(INCOMING_NEWS_SUBBED);
+
+        incomingInfoWithoutSubMock = mock(IncomingInfo.class);
+        when(incomingInfoWithoutSubMock.requiresSubsciption()).thenReturn(false);
+        when(incomingInfoWithoutSubMock.getSubscriptionType()).thenReturn(SubsciptionType.NONE);
+        when(incomingInfoWithoutSubMock.getContent()).thenReturn(INCOMING_NEWS_NONE);
+
+        List<IncomingInfo> incomingInfoList = Arrays.asList(new IncomingInfo[] {
+                incomingInfoWithSubMock, incomingInfoWithoutSubMock
+        });
+
+        incomingNewsMock = mock(IncomingNews.class);
+        when(incomingNewsMock.elems()).thenReturn(incomingInfoList);
+
         newsReaderMock = mock(NewsReader.class);
 
         configurationMock = mock(Configuration.class);
         when(configurationMock.getReaderType()).thenReturn("");
 
         mockStatic(ConfigurationLoader.class);
-        ConfigurationLoader configurationLoaderMock = mock(ConfigurationLoader.class);
+        configurationLoaderMock = mock(ConfigurationLoader.class);
         when(ConfigurationLoader.getInstance()).thenReturn(configurationLoaderMock);
         when(configurationLoaderMock.loadConfiguration()).thenReturn(configurationMock);
 
         mockStatic(NewsReaderFactory.class);
         when(NewsReaderFactory.getReader(anyString())).thenReturn(newsReaderMock);
 
-        publishableNewsMock = new PublishableNews();
+        publishableNewsStub = new PublishableNews();
         mockStatic(PublishableNews.class);
-        when(PublishableNews.create()).thenReturn(publishableNewsMock);
+        when(PublishableNews.create()).thenReturn(publishableNewsStub);
+
+        publishableNewsMock = mock(PublishableNews.class);
     }
 
     @Test
@@ -106,6 +135,41 @@ public class NewsLoaderTest {
 
         assertThat(publishableNewsContentSubbed, is(newsContentSubbed));
         assertThat(publishableNewsContentPublic, is(newsContentPublic));
+    }
+
+    @Test
+    public void loadNewsMethodBehaviourTest() {
+        when(newsReaderMock.read()).thenReturn(incomingNewsMock);
+
+        mockStatic(PublishableNews.class);
+        when(PublishableNews.create()).thenReturn(publishableNewsMock);
+
+        newsLoader.loadNews();
+
+        verifyStatic();
+        ConfigurationLoader.getInstance();
+
+        verify(configurationLoaderMock).loadConfiguration();
+
+        verifyStatic();
+        NewsReaderFactory.getReader(configurationMock.getReaderType());
+
+        verify(newsReaderMock).read();
+
+        verifyStatic();
+        PublishableNews.create();
+
+        verify(incomingNewsMock).elems();
+
+        verify(incomingInfoWithSubMock).requiresSubsciption();
+
+        verify(publishableNewsMock).addForSubscription(
+                incomingInfoWithSubMock.getContent(),
+                incomingInfoWithSubMock.getSubscriptionType());
+
+        verify(incomingInfoWithoutSubMock).requiresSubsciption();
+
+        verify(publishableNewsMock).addPublicInfo(incomingInfoWithoutSubMock.getContent());
     }
 
     private void setIncomingNews(String type) {
